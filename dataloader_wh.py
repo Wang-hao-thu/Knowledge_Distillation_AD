@@ -10,11 +10,9 @@ from torch.utils.data.distributed import DistributedSampler
 from mmdet.datasets import build_dataloader
 from torch.utils.data import Dataset
 
-from tqdm import tqdm
-
 
 class MyDataset_WH(Dataset):
-    def __init__(self, txt_path, transform=None, target_transform=None):
+    def __init__(self,txt_path,transform=None,target_transform=None):
         super(MyDataset, self).__init__()
         f1 = open(txt_path,'r')
         imgs = []
@@ -34,43 +32,7 @@ class MyDataset_WH(Dataset):
         if self.transform:
             img = self.transform(img)
         return img, label
-
-
-
-class Mydata_train(Dataset):
-    def __init__(self, imglist, transforms=None):
-        self.imglist=imglist
-        self.transforms = transforms
-        self.img_pathes, self.labels = self.load_data()
-
-    def load_data(self):
-        img_pathes = []
-        labels = []
-        f1 = open(self.imglist, 'r')
-        for line in tqdm(f1.readlines()):
-            img_path = line.strip().split(' ')[0]
-            label = int(line.strip().split(' ')[1])
-            img_pathes.append(img_path)
-            labels.append(label)
-        return img_pathes, labels
-
-    def __getitem__(self, index):
-        image_path = self.img_pathes[index]
-        label = self.labels[index]
-        img = Image.open(image_path).convert('RGB')
-        img = self.transforms(img)
-        return img, label
-
-    def __len__(self):
-        return len(self.img_pathes)
-
-
-
-
-
-
-
-
+        
             
             
             
@@ -172,19 +134,15 @@ def load_data(config,launcher=None):
         test_data_path = 'Dataset/OCT2017/test'
         test_set = ImageFolder(root=test_data_path, transform=orig_transform)
     else:
-        # data_path = os.path.join('Dataset',config['dataset_name'], 'train')
-        #jier_data_size = config['jier_data_size']
-        input_size = config['input_size']
+        data_path = os.path.join('Dataset',config['dataset_name'],'train')
+        jier_data_size = config['jier_data_size']
         orig_transform = transforms.Compose([
-            transforms.Resize([input_size, input_size]),
+            transforms.Resize([jier_data_size, jier_data_size]),
             transforms.ToTensor()
         ])
-        dataset = Mydata_train(config['train_list'], transforms=orig_transform)
-        test_set = Mydata_train(config['test_list'], transforms=orig_transform)
-
-        # dataset = ImageFolder(root=data_path, transform=orig_transform)
-        # test_data_path = os.path.join('Dataset',config['dataset_name'], 'test')
-        # test_set = ImageFolder(root=test_data_path, transform=orig_transform)
+        dataset = ImageFolder(root=data_path, transform=orig_transform)
+        test_data_path = os.path.join('Dataset',config['dataset_name'],'test')
+        test_set = ImageFolder(root=test_data_path, transform=orig_transform)
     # else:
     #     raise Exception(
     #         "You enter {} as dataset, which is not a valid dataset for this repository!".format(config['dataset_name']))

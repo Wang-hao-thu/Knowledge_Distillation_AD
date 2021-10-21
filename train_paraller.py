@@ -9,13 +9,24 @@ import pickle
 from test_functions import detection_test
 from loss_functions import *
 from tools.vis_result import get_result
-
+from mmcv.runner import init_dist, get_dist_info
+from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 
 parser = ArgumentParser()
 parser.add_argument('--config', type=str, default='configs/config.yaml', help="training configuration")
+parser.add_argument('--launcher',default=None,choices=['None','slurm','pytorch'],help='job launcher')
 
 
-def train(config):
+
+def train(config,launcher=None):
+    if launcher == None:
+        distributed = False
+    else:
+        distributed = True
+        init_dist(launcher,**config['dist_params'])
+        _,world_size = get_dist_info()
+        config['gpu_ids'] = range(world_size)
+
     direction_loss_only = config["direction_loss_only"]
     normal_class = config["normal_class"]
     learning_rate = float(config['learning_rate'])
@@ -24,7 +35,7 @@ def train(config):
     continue_train = config['continue_train']
     last_checkpoint = config['last_checkpoint']
 
-    checkpoint_path = "./outputs/{}/{}/checkpoints/".format(config['experiment_name'], config['dataset_name'])
+    checkpoint_path = "./outputs/{}/{}/checkpoints/".format(config['experiment_name'], config['save_name'])
 
     # create directory
     Path(checkpoint_path).mkdir(parents=True, exist_ok=True)
@@ -34,7 +45,18 @@ def train(config):
         vgg, model = get_networks(config, load_checkpoint=True)
     else:
         vgg, model = get_networks(config)
-
+    if distributed:
+        model = model
+        # model = MMDistributedDataParallel(
+        #     model.cuda(),
+        #     device_ids = [torch.cuda.current_device()],
+        #     broadcast_buffers=False,
+        #     find_unused_parameters=False
+        # )
+    else:
+        model = model
+    device_ids = [0,1,2,3,4,5,6,7]
+    model = torch.nn.DataParallel(model,device_ids=device_ids)
     # Criteria And Optimizers
     if direction_loss_only:
         criterion = DirectionOnlyLoss()
@@ -77,15 +99,18 @@ def train(config):
             # Adjust weights
             optimizer.step()
 
-        print('epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, epoch_loss),flush=True)
-        if epoch % 11 == 1:
-            save_file = './tmp/tmp' + config['dataset_name'] + '.txt'
-            lst_file = config['test_list']
+        print('epoch [{}/{}], loss:{:.4f}'.format(epoch + 1, num_epochs, epoch_loss))
+        if epoch % 3 == 1:
+            save_file = 'tmp.txt'
+            lst_file = os.path.join('Dataset',config['dataset_name'],'test','test.lst')
             infer_(model, vgg, config, lst_file, save_file)
             get_result(save_file)
 
-
-        if epoch % 10 == 0:
+            #roc_auc = detection_test(model, vgg, test_dataloader, config)
+            #roc_aucs.append(roc_auc)
+            #print("RocAUC at epoch {}:".format(epoch), roc_auc)
+        os.system('rm -rf tmp.txt')
+        if epoch % 3 == 0:
             torch.save(model.state_dict(),
                        '{}Cloner_{}_epoch_{}.pth'.format(checkpoint_path, normal_class, epoch))
             torch.save(optimizer.state_dict(),
@@ -98,7 +123,9 @@ def train(config):
 def main():
     args = parser.parse_args()
     config = get_config(args.config)
-    train(config)
+    config['dist_params']={'backend':'nccl'}
+    launcher = args.launcher
+    train(config,launcher)
 
 
 if __name__ == '__main__':

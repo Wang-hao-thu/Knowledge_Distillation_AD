@@ -95,6 +95,7 @@ def get_networks(config, load_checkpoint=False):
     pretrain = config['pretrain']
     experiment_name = config['experiment_name']
     dataset_name = config['dataset_name']
+    #save_name = config['save_name']
     normal_class = config['normal_class']
     use_bias = config['use_bias']
     cfg = {
@@ -110,8 +111,8 @@ def get_networks(config, load_checkpoint=False):
     vgg = Vgg16(pretrain).cuda()
     model = make_arch(config_type, cfg, use_bias, True).cuda()
 
-    for j, item in enumerate(nn.ModuleList(model.features)):
-        print('layer : {} {}'.format(j, item))
+   # for j, item in enumerate(nn.ModuleList(model.features)):
+    #    print('layer : {} {}'.format(j, item))
 
     if load_checkpoint:
         last_checkpoint = config['last_checkpoint']

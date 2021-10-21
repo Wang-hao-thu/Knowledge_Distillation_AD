@@ -15,15 +15,17 @@ def detection_test(model, vgg, test_dataloader, config):
     dataset_name = config['dataset_name']
     direction_only = config['direction_loss_only']
 
-    if dataset_name != "mvtec":
+    if dataset_name != "mvtec" and dataset_name != 'jier_data':
         target_class = normal_class
-    else:
+    elif dataset_name == 'mvtec':
         mvtec_good_dict = {'bottle': 3, 'cable': 5, 'capsule': 2, 'carpet': 2,
                            'grid': 3, 'hazelnut': 2, 'leather': 4, 'metal_nut': 3, 'pill': 5,
                            'screw': 0, 'tile': 2, 'toothbrush': 1, 'transistor': 3, 'wood': 2,
                            'zipper': 4
                            }
         target_class = mvtec_good_dict[normal_class]
+    elif dataset_name == 'jier_data':
+        target_class = normal_class
 
     similarity_loss = torch.nn.CosineSimilarity()
     label_score = []
@@ -53,7 +55,6 @@ def detection_test(model, vgg, test_dataloader, config):
             total_loss = loss_1 + loss_2 + loss_3 + lamda * (abs_loss_1 + abs_loss_2 + abs_loss_3)
 
         label_score += list(zip(Y.cpu().data.numpy().tolist(), total_loss.cpu().data.numpy().tolist()))
-
     labels, scores = zip(*label_score)
     labels = np.array(labels)
     indx1 = labels == target_class
@@ -62,10 +63,10 @@ def detection_test(model, vgg, test_dataloader, config):
     labels[indx2] = 0
     scores = np.array(scores)
     fpr, tpr, thresholds = roc_curve(labels, scores, pos_label=0)
+#从0 到 1 所有的recall 和 fp 都有。
     roc_auc = auc(fpr, tpr)
     roc_auc = round(roc_auc, 4)
     return roc_auc
-
 
 def localization_test(model, vgg, test_dataloader, ground_truth, config):
     localization_method = config['localization_method']
@@ -75,7 +76,6 @@ def localization_test(model, vgg, test_dataloader, ground_truth, config):
         grad = smooth_grad_localization(model, vgg, test_dataloader, config)
     if localization_method == 'gbp':
         grad = gbp_localization(model, vgg, test_dataloader, config)
-
     return compute_localization_auc(grad, ground_truth)
 
 
@@ -101,7 +101,6 @@ def grad_calc(inputs, model, vgg, config):
         total_loss = loss_1 + loss_2 + loss_3 + lamda * (abs_loss_1 + abs_loss_2 + abs_loss_3)
         model.zero_grad()
         total_loss.backward()
-
         temp[i] = inputs.grad[i]
 
     return temp
@@ -288,7 +287,6 @@ def gbp_localization(model, vgg, test_dataloader, config):
         grad1 = np.zeros((X.shape[0], 1, 128, 128), dtype=np.float32)
         for x in X:
             data = x.view(1, 3, 128, 128)
-
             GBP = GuidedBackprop(model, vgg, 'cuda:0')
             gbp_saliency = abs(GBP.generate_gradients(data, config))
             gbp_saliency = (gbp_saliency - min(gbp_saliency.flatten())) / (
@@ -298,7 +296,6 @@ def gbp_localization(model, vgg, test_dataloader, config):
             saliency = gaussian_filter(saliency, sigma=4)
             grad1[i] = saliency
             i += 1
-
     grad1 = grad1.reshape(-1, 128, 128)
     return grad1
 
