@@ -1,0 +1,40 @@
+# Data parameters
+experiment_name: 'local_equal_net'
+dataset_name: 'ciwa_1' # [jier_data,mnist, fashionmnist, cifar10, mvtec, retina]
+last_checkpoint: 10 
+#train_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_2/train.lst'
+#train_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_3/train.lst'
+#train_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_1_new/train_ok.lst'
+#train_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_2_new/train_ok.lst'
+train_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_1_new/train_ok.lst'
+
+#test_list: '/mnt/lustre/wanghao3/projects/DRAEM/data_path/ciwa_1/test/test.lst'
+#test_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_2/test.lst'
+#test_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_3/test.lst'
+#test_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_1_new/test.lst'
+#test_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_2_new/test.lst'
+test_list: '/mnt/lustre/wanghao3/projects/Knowlege_distillation_AD/Dataset/ciwa_1_new/test.lst'
+input_size: 512
+# Training parameters
+num_epochs: 500 # mnist/fashionmnist:51, cifar10:201, mvtec:601
+batch_size: 8 
+learning_rate: 1e-3
+#mvtec_img_size: 128
+jier_data_size: 512 
+normal_class: 0 # mvtec:'capsule', mnist:3 jier_data:0
+
+lamda: 0.5 # mvtec:0.5, Others:0.01
+
+
+pretrain: True # True:use pre-trained vgg as source network --- False:use random initialize
+use_bias: False # True:using bias term in neural network layer
+equal_network_size: False # True:using equal network size for cloner and source network --- False:smaller network for cloner
+direction_loss_only: False
+continue_train: False 
+
+
+
+
+# Test parameters
+localization_test: False # True:For Localization Test --- False:For Detection
+localization_method: 'gbp' # gradients , smooth_grad , gbp
